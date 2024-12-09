@@ -1,2 +1,2 @@
 # DS210_FinalProject
-NHL k-NN Final Project
+Project using NHL Player data to calculate individual player rank based on player that user calls. 
