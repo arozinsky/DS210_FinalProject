@@ -1,6 +1,7 @@
 mod cleaning;
 use std::{collections::HashMap, fs::File, io::{self, BufReader, BufRead, stdin}};
 use cleaning::{clean_fields, normalize_metrics, Player, Position};
+use crate::cleaning::process_file;
 
 fn calculate_score(position: &Position, metrics: &[f64]) -> f64 {
     let (weights, scaling_factor) = match position {
@@ -109,11 +110,87 @@ fn main() -> io::Result<()> {
                     }
                 }
 
-                println!("\nFinal Score: {:.2}%", total_score);
+                println!("\nCurrent Rating: {:.2}%", total_score);
             }
             None => println!("Player '{}' not found. Please try again.", player_name),
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{collections::HashMap, io::Write, fs::File};
+
+    #[test]
+    fn test_clean_fields_center() {
+    let input = r#"1,"Player One","C",,,,33.0,7.0,10.0,,,,,,,,,,,,,,,27.0,,,,30.0,18.0,,,,,,,,,,,,,,,,,"#;
+    let result = clean_fields(input);
+    assert!(result.is_some(), "Failed to clean fields for valid input");
+    
+    let (name, positions, metrics) = result.unwrap();
+    assert_eq!(name, "Player One");
+    assert_eq!(positions, vec![Position::Center]);
+    assert!(metrics.contains_key(&Position::Center));
+    }
+
+
+    #[test]
+    fn test_normalize_metrics() {
+        let mut players: HashMap<String, Player> = HashMap::new();
+        players.insert(
+            "Player A".to_string(),
+            Player {
+                name: "Player A".to_string(),
+                positions: vec![Position::Wing],
+                metrics: HashMap::from([(
+                    Position::Wing,
+                    vec![10.0, 20.0, 30.0],
+                )]),
+            },
+        );
+        players.insert(
+            "Player B".to_string(),
+            Player {
+                name: "Player B".to_string(),
+                positions: vec![Position::Wing],
+                metrics: HashMap::from([(
+                    Position::Wing,
+                    vec![20.0, 10.0, 40.0],
+                )]),
+            },
+        );
+
+        normalize_metrics(&mut players);
+
+        let wing_metrics_a = &players["Player A"].metrics[&Position::Wing];
+        let wing_metrics_b = &players["Player B"].metrics[&Position::Wing];
+
+        assert_eq!(wing_metrics_a, &[0.5, 1.0, 0.75]);
+        assert_eq!(wing_metrics_b, &[1.0, 0.5, 1.0]);
+    }
+
+    #[test]
+    fn test_calculate_score() {
+        let metrics = vec![0.5, 1.0, 0.75, 0.8, 0.9];
+        let score = calculate_score(&Position::Wing, &metrics);
+        assert!(score > 0.0 && score <= 100.0);
+    }
+
+    #[test]
+    fn test_process_file_skip_header() {
+    let input = r#"1,"Player One","C",,,,33.0,7.0,10.0,,,,,,,,,,,,,,,27.0,,,,30.0,18.0,
+                   2,"Player Two","L",,,,22.0,5.0,12.0,,,,,,,,,,,,,,,21.0,,,,25.0,15.0,
+                   3,"Player Three","D",,,,20.0,10.0,5.0,,,,,,,,,,,,,,,18.0,,,,28.0,12.0,"#;
+    let file_path = "test.csv";
+    
+    let mut file = std::fs::File::create(file_path).unwrap();
+    file.write_all(input.as_bytes()).unwrap();
+    
+    let players = process_file(file_path).unwrap();
+    
+    assert_eq!(players.len(), 0);
+    }
 }

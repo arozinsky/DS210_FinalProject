@@ -1,17 +1,37 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::{self, BufReader, BufRead}};
 
 #[derive(Debug)]
 pub struct Player {
     pub name: String,
     pub positions: Vec<Position>,
-    pub metrics: HashMap<Position, Vec<f64>>, 
+    pub metrics: HashMap<Position, Vec<f64>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)] 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Position {
     Center,
     Wing,
     Defense,
+}
+
+pub fn process_file(file_path: &str) -> io::Result<HashMap<String, Player>> {
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let mut players: HashMap<String, Player> = HashMap::new();
+
+    let mut lines = reader.lines();
+    
+    lines.next();
+
+    for line in lines {
+        let line = line?;
+
+        if let Some((player_name, positions, metrics)) = clean_fields(&line) {
+            players.insert(player_name.clone(), Player { name: player_name, positions, metrics });
+        }
+    }
+
+    Ok(players)
 }
 
 pub fn clean_fields(line: &str) -> Option<(String, Vec<Position>, HashMap<Position, Vec<f64>>)> {
@@ -88,11 +108,6 @@ pub fn clean_fields(line: &str) -> Option<(String, Vec<Position>, HashMap<Positi
                 return None;
             }
         }
-    }
-
-    if has_left_wing && has_right_wing {
-        positions.retain(|p| *p != Position::Wing); 
-        positions.push(Position::Wing); 
     }
 
     Some((player_name, positions, metrics))
