@@ -98,7 +98,7 @@ pub fn clean_fields(line: &str) -> Option<(String, Vec<Position>, HashMap<Positi
                         fields[28].parse::<f64>().unwrap_or_else(|_| default_metric("Hits", &player_name)),
                         fields[30].parse::<f64>().unwrap_or_else(|_| default_metric("Shots Blocked", &player_name)),
                         fields[27].parse::<f64>().unwrap_or_else(|_| default_metric("Takeaways", &player_name)),
-                        fields[19].parse::<f64>().unwrap_or_else(|_| default_metric("Rebounds Created", &player_name)),
+                        fields[9].parse::<f64>().unwrap_or_else(|_| default_metric("Total Points", &player_name)),
                         fields[18].parse::<f64>().unwrap_or_else(|_| default_metric("Rush Attempts", &player_name))
                     ]
                 );
